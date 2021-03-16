@@ -9,8 +9,7 @@ public class PlayerController : MonoBehaviour
     public float thrust;
     private float lift = 7000f;
     private float drag = 100f;
-    private float torque = 8000f;
-    private float turnSpeed = 0.2f;
+    private float torque = 6000f;
     // Ground
     public float acceleration;
 
@@ -60,26 +59,40 @@ public class PlayerController : MonoBehaviour
 
     bool Flying()
     {
-        //float angleOfAttack = Vector3.Angle(transform.forward, rb.velocity) * Mathf.Deg2Rad;
+        float angleOfAttack = Vector3.Angle(transform.forward, rb.velocity) * Mathf.Deg2Rad;
         rb.AddForce(-Physics.gravity * rb.mass);
 
         if (pitch != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(pitch * turnSpeed, Vector3.right);
+            rb.AddRelativeForce(Vector3.down * lift * pitch);
+            transform.rotation *= Quaternion.AngleAxis(angleOfAttack * pitch, Vector3.right);
+            rb.AddRelativeTorque(Vector3.right * torque / 5 * pitch);
         }
-
-        transform.rotation *= Quaternion.AngleAxis(turnSpeed * 10 * transform.rotation.z, transform.InverseTransformVector(Vector3.down));
+        else
+        {
+            rb.AddRelativeTorque(Vector3.left * torque * transform.rotation.x);
+        }
         if (roll != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(roll * turnSpeed, Vector3.back);
+            rb.angularDrag = 0.0f;
+            rb.AddRelativeTorque(Vector3.back * roll * torque);
+            rb.AddRelativeForce(Vector3.right * lift * transform.rotation.z * roll);
+            if (Mathf.Sign(roll) == Mathf.Sign(transform.rotation.z))
+            rb.AddRelativeTorque(transform.InverseTransformVector(Vector3.down) * lift * 3 * roll * -transform.rotation.z);
+        }
+        else
+        {
+            rb.AddRelativeTorque(Vector3.back * torque * transform.rotation.z);
+            print(transform.rotation.x);
+            //rb.AddRelativeTorque(transform.InverseTransformDirection(Vector3.down) * lift * transform.rotation.z);
         }
 
         if (yaw != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(yaw * turnSpeed, Vector3.up);
+            rb.AddRelativeTorque(Vector3.up * yaw * torque / 2);
         }
 
-        rb.AddRelativeForce(Vector3.forward * thrust);
+        rb.AddRelativeForce((Vector3.forward + rb.velocity.normalized).normalized * thrust);
 
         return true;
     }
@@ -98,7 +111,7 @@ public class PlayerController : MonoBehaviour
         }
         else rb.drag = 0.3f;
 
-        if (rb.velocity.magnitude > 20f)
+        if (rb.velocity.magnitude > 30f)
         {
             rb.drag = 0;
             rb.angularDrag = 0.05f;

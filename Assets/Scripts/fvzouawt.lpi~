@@ -10,7 +10,7 @@ public class PlayerController : MonoBehaviour
     private float lift = 7000f;
     private float drag = 100f;
     private float torque = 8000f;
-    private float turnSpeed = 0.2f;
+    private float turnSpeed = 0.1f;
     // Ground
     public float acceleration;
 
@@ -60,23 +60,45 @@ public class PlayerController : MonoBehaviour
 
     bool Flying()
     {
-        //float angleOfAttack = Vector3.Angle(transform.forward, rb.velocity) * Mathf.Deg2Rad;
+        float angleOfAttack = Vector3.Angle(transform.forward, rb.velocity) * Mathf.Deg2Rad;
         rb.AddForce(-Physics.gravity * rb.mass);
 
         if (pitch != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(pitch * turnSpeed, Vector3.right);
+            rb.AddRelativeForce(Vector3.down * lift * pitch);
+            transform.rotation *= Quaternion.AngleAxis(angleOfAttack * pitch, Vector3.right);
+            rb.AddRelativeTorque(Vector3.right * torque / 5 * pitch);
         }
-
-        transform.rotation *= Quaternion.AngleAxis(turnSpeed * 10 * transform.rotation.z, transform.InverseTransformVector(Vector3.down));
+        else
+        {
+            rb.AddRelativeTorque(Vector3.left * torque * transform.rotation.x);
+        }
         if (roll != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(roll * turnSpeed, Vector3.back);
+            transform.rotation *= Quaternion.AngleAxis(turnSpeed * roll, Vector3.back);
+            transform.rotation *= Quaternion.AngleAxis((transform.rotation.z * Mathf.Rad2Deg), transform.InverseTransformVector(Vector3.up));
+            if (Mathf.Sign(roll) != Mathf.Sign(transform.rotation.z))
+            {
+                rb.AddRelativeForce(Vector3.left * lift * transform.rotation.z * roll);
+            }
+            /*
+            rb.AddRelativeTorque(Vector3.back * roll * torque);
+            if (Mathf.Sign(roll) != Mathf.Sign(transform.rotation.z))
+            {
+                rb.AddRelativeTorque(transform.InverseTransformVector(Vector3.down) * lift * 3 * roll * -transform.rotation.z);
+            }
+
+            */
+        }
+        else
+        {
+            //rb.AddRelativeTorque(Vector3.back * torque * transform.rotation.z);
+            //rb.AddRelativeTorque(transform.InverseTransformDirection(Vector3.down) * lift * transform.rotation.z);
         }
 
         if (yaw != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(yaw * turnSpeed, Vector3.up);
+            transform.rotation *= Quaternion.AngleAxis(turnSpeed * yaw, Vector3.up);
         }
 
         rb.AddRelativeForce(Vector3.forward * thrust);

@@ -9,8 +9,7 @@ public class PlayerController : MonoBehaviour
     public float thrust;
     private float lift = 7000f;
     private float drag = 100f;
-    private float torque = 8000f;
-    private float turnSpeed = 0.2f;
+    private float torque = 1000f;
     // Ground
     public float acceleration;
 
@@ -35,12 +34,12 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        foreach (var wheel in wheels)
-        {
-            wheel.motorTorque = 0.01f;
-        }
         if (!isFlying)
-        {            
+        {
+            foreach (var wheel in wheels)
+            {
+                wheel.motorTorque = 0.01f;
+            }
             isFlying = MovingOnGround();
         }
         else
@@ -60,26 +59,28 @@ public class PlayerController : MonoBehaviour
 
     bool Flying()
     {
-        //float angleOfAttack = Vector3.Angle(transform.forward, rb.velocity) * Mathf.Deg2Rad;
-        rb.AddForce(-Physics.gravity * rb.mass);
+        float angleOfAttack = Vector3.Angle(transform.forward, rb.velocity);
+        rb.AddForce(Vector3.up * rb.mass * 9.81f);
 
         if (pitch != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(pitch * turnSpeed, Vector3.right);
+            rb.AddForce(Vector3.up * angleOfAttack * Mathf.Cos(angleOfAttack) * lift * -pitch);
         }
 
-        transform.rotation *= Quaternion.AngleAxis(turnSpeed * 10 * transform.rotation.z, transform.InverseTransformVector(Vector3.down));
         if (roll != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(roll * turnSpeed, Vector3.back);
+            
         }
 
         if (yaw != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(yaw * turnSpeed, Vector3.up);
+
         }
 
-        rb.AddRelativeForce(Vector3.forward * thrust);
+        if (pitch == 0 && roll == 0 && yaw == 0)
+        {            
+            rb.AddTorque(Vector3.right * 5000 * transform.rotation.x);
+        }
 
         return true;
     }
@@ -98,7 +99,7 @@ public class PlayerController : MonoBehaviour
         }
         else rb.drag = 0.3f;
 
-        if (rb.velocity.magnitude > 20f)
+        if (rb.velocity.magnitude > 30f)
         {
             rb.drag = 0;
             rb.angularDrag = 0.05f;
