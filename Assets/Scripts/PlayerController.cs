@@ -7,9 +7,9 @@ public class PlayerController : MonoBehaviour
     public List<WheelCollider> wheels;
     // Air
     public float thrust;
-    private float lift;
+    public float lift = 0;
     private float drag = 10f;
-    private float torque = 15000f;
+    private float torque = 20000f;
     private float turnSpeed = 0.2f;
     // Ground
     public float acceleration;
@@ -44,7 +44,6 @@ public class PlayerController : MonoBehaviour
         }
         if (!isFlying)
         {
-            rb.drag = 0f;
             rb.angularDrag = 0.8f;
             thrust = 30000f;
             isFlying = MovingOnGround();
@@ -68,22 +67,23 @@ public class PlayerController : MonoBehaviour
 
     bool Flying()
     {
-        float gas = Input.GetKey(KeyCode.U) ? 2 : (Input.GetKey(KeyCode.J) && rb.velocity.magnitude >= 16 ? 0.3f : (
+        float gas = Input.GetKey(KeyCode.U) ? 2 : (Input.GetKey(KeyCode.J) && rb.velocity.magnitude >= 16 ? 0.8f : (
             rb.velocity.magnitude < 16 ? 0.5f : 1));
         rb.AddRelativeForce(Vector3.forward * thrust * gas);
         if (rb.velocity.magnitude >= 16)
         {
-            lift = 1;
-        }
-        else
-        {
-            lift -= Time.deltaTime;
+            if (lift != 0)
+                lift += lift < 1 ? Time.deltaTime * 0.05f : 0;
+            else lift = 1;
         }
 
+        lift -= lift > 0 && gas == 0.8f ? Time.deltaTime * 0.3f : 0;
+        
         rb.AddForce(-Physics.gravity * rb.mass * lift * (1 - Mathf.Abs(transform.rotation.x)));
 
         if (transform.position.y < 1 && lift < 1)
         {
+            rb.drag = 0;
             return false;
         }
 
@@ -110,7 +110,7 @@ public class PlayerController : MonoBehaviour
 
     bool MovingOnGround()
     {
-        if (rb.velocity.magnitude > 16f)
+        if (rb.velocity.magnitude > 16f && lift == 0)
         {
             rb.AddForce(Vector3.up * thrust * 2);
             rb.AddRelativeTorque(Vector3.right * torque);
@@ -123,15 +123,17 @@ public class PlayerController : MonoBehaviour
         {
             rb.AddRelativeForce(Vector3.forward * thrust * gas);
             rb.AddRelativeTorque(Vector3.up * thrust * gas * roll * (rb.velocity.magnitude > 2 ? 1 : 0));
-        }         
-        
+        }
+
         if (brake != 0)
         {
             rb.drag = rb.velocity.magnitude < 0.7 ? 1 : 0.3f;
         }
-        else rb.drag += rb.drag < 0.3f ? Time.deltaTime * 0.1f : 0;
+        else rb.drag = 0.05f;
 
-        
+        if (lift > 0)
+            lift -= Time.deltaTime;
+
         return false;
     }
 }
