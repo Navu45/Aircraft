@@ -2741,7 +2741,10 @@ MonoBehaviour:
   - {fileID: 2980875997605236005}
   - {fileID: 2980875998255219264}
   - {fileID: 2980875998261122861}
+  canvasEnd: {fileID: 0}
+  isFuelOver: 0
   thrust: 20000
+  lift: 0
   acceleration: 3.5
   pitch: 0
   roll: 0

@@ -1,0 +1,29 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class GameControllerScript : MonoBehaviour
+{
+    public float fuel;
+    public int points;
+    public Rigidbody rb;
+    public PlayerController playerController;
+    public Text displayParams;
+    void Start()
+    {
+        fuel = 100f;
+        points = 0;
+    }
+
+    // Update is called once per frame
+    void FixedUpdate()
+    {
+        float gas = Input.GetKey(KeyCode.U) && playerController.isFlying ? 0.7f : 0;
+        if (fuel > 0)
+            fuel -=  0.1f * Time.fixedDeltaTime + gas;
+        else
+            playerController.isFuelOver = true;
+        displayParams.text = "Fuel: " + fuel + "%\n";
+        displayParams.text += "Velocity: " + rb.velocity.magnitude * 5 + "%\n";
+        displayParams.text += "Points: " + points + "%\n";
+    }
+}
