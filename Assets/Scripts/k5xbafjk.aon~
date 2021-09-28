@@ -1,0 +1,20 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class PointSphereRespawn : MonoBehaviour
+{
+    // Start is called before the first frame update
+    public GameControllerScript gameController;
+    public Collider airplane;
+
+    // Update is called once per frame
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.Equals(airplane))
+        {
+            GameObject pointSphere = Instantiate(transform.gameObject);
+            pointSphere.transform.position = airplane.transform.position + new Vector3(Random.value * 50, Random.value * 50, Random.value * 50)
+        }
+    }
+}

@@ -1,0 +1,52 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class GameControllerScript : MonoBehaviour
+{
+    public float fuel;
+    public int points;
+    public int spheres;
+    public Rigidbody rb;
+    public PlayerController playerController;
+    public Text displayParams;
+    public GameObject canvasEnd;
+    public GameObject sphere;
+    public bool IsGameOver;
+    void Start()
+    {
+        fuel = 100f;
+        points = 0;
+
+        for (int i = 0; i < 50; i++)
+        {
+            GameObject pointSphere = Instantiate(sphere);
+            pointSphere.transform.position = rb.transform.position + new Vector3(Random.value * 200 * (Random.value >= 0.5 ? 1 : -1), Random.value * 100 + 130, Random.value * 200 * (Random.value >= 0.5 ? 1 : -1));
+        }
+    }
+
+    // Update is called once per frame
+    void FixedUpdate()
+    {
+        if (fuel == 0 && rb.velocity.z < 0.5)
+        {
+            Time.timeScale = 0;
+            IsGameOver = true;
+            canvasEnd.SetActive(true);
+        }
+
+        float gas = Input.GetKey(KeyCode.U) && playerController.isFlying ? 0.15f : 0;
+        if (rb.velocity.magnitude > 1 && (Input.GetKey(KeyCode.U) || playerController.isFlying))
+        {
+            if (fuel > 0)
+                fuel -= (0.05f + gas) * Time.fixedDeltaTime;
+            else
+            {
+                playerController.isFuelOver = true;
+                fuel = 0;
+            }
+        }
+        displayParams.text = "Fuel: " + fuel + "%\n";
+        displayParams.text += "Velocity: " + rb.velocity.magnitude * 6 + "%\n";
+        displayParams.text += "Points: " + points + "%\n";
+    }
+}
