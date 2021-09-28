@@ -7,13 +7,15 @@ public class PlayerController : MonoBehaviour
     public List<WheelCollider> wheels;
     // Air
     public float thrust;
-    private float lift = 7000f;
-    private float drag = 100f;
-    private float torque = 8000f;
+    public float lift = 0;
+    private float drag = 10f;
+    private float torque = 20000f;
     private float turnSpeed = 0.2f;
     // Ground
     public float acceleration;
 
+
+    private float MAX_TURN_ANGLE = 0.3f;
     [Range(-1, 1)]
     public float pitch;
     [Range(-1, 1)]
@@ -30,7 +32,8 @@ public class PlayerController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        isFlying = true;
+        isFlying = false;
+        rb.centerOfMass = new Vector3(0, 1.7f, -1.2f);
     }
 
     private void FixedUpdate()
@@ -40,11 +43,15 @@ public class PlayerController : MonoBehaviour
             wheel.motorTorque = 0.01f;
         }
         if (!isFlying)
-        {            
+        {
+            rb.angularDrag = 0.8f;
+            thrust = 30000f;
             isFlying = MovingOnGround();
         }
         else
         {
+            rb.drag = 0.3f;
+            thrust = 30000f;
             isFlying = Flying();
         }
     }
@@ -60,51 +67,73 @@ public class PlayerController : MonoBehaviour
 
     bool Flying()
     {
-        //float angleOfAttack = Vector3.Angle(transform.forward, rb.velocity) * Mathf.Deg2Rad;
-        rb.AddForce(-Physics.gravity * rb.mass);
+        float gas = Input.GetKey(KeyCode.U) ? 2 : (Input.GetKey(KeyCode.J) && rb.velocity.magnitude >= 16 ? 0.8f : (
+            rb.velocity.magnitude < 16 ? 0.5f : 1));
+        rb.AddRelativeForce(Vector3.forward * thrust * gas);
+        if (rb.velocity.magnitude >= 16)
+        {
+            if (lift != 0)
+                lift += lift < 1 ? Time.deltaTime * 0.05f : 0;
+            else lift = 1;
+        }
+
+        lift -= lift > 0 && gas == 0.8f ? Time.deltaTime * 0.3f : 0;
+        
+        rb.AddForce(-Physics.gravity * rb.mass * lift * (1 - Mathf.Abs(transform.rotation.x)));
+
+        if (transform.position.y < 1 && lift < 1)
+        {
+            rb.drag = 0;
+            return false;
+        }
 
         if (pitch != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(pitch * turnSpeed, Vector3.right);
+            rb.AddRelativeTorque(Vector3.right * torque * pitch);
         }
 
-        transform.rotation *= Quaternion.AngleAxis(turnSpeed * 10 * transform.rotation.z, transform.InverseTransformVector(Vector3.down));
+        if (Mathf.Abs(transform.rotation.z) < 0.4f)
+            rb.AddRelativeTorque(Physics.gravity.normalized * torque * 3 * Mathf.Abs(transform.rotation.z));
         if (roll != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(roll * turnSpeed, Vector3.back);
+            rb.AddRelativeTorque(Vector3.back * torque * roll);
         }
 
         if (yaw != 0)
         {
-            transform.rotation *= Quaternion.AngleAxis(yaw * turnSpeed, Vector3.up);
+            rb.AddRelativeTorque(Vector3.up * yaw * torque);
         }
 
-        rb.AddRelativeForce(Vector3.forward * thrust);
-
+        
         return true;
     }
 
     bool MovingOnGround()
     {
-        if (pitch != 0)
+        if (rb.velocity.magnitude > 16f && lift == 0)
         {
-            rb.AddRelativeForce(Vector3.forward * thrust * pitch * (Input.GetKey(KeyCode.U) ? acceleration : 1)); // U is acceleration
-            rb.AddRelativeTorque(Vector3.up * thrust  * roll * (rb.velocity.magnitude > 2 && !Input.GetKey(KeyCode.U) ? 1 : 0));
+            rb.AddForce(Vector3.up * thrust * 2);
+            rb.AddRelativeTorque(Vector3.right * torque);
+            return true;
+        }
+
+        int gas = Input.GetKey(KeyCode.U) ? 1 : 0;
+
+        if (gas != 0)
+        {
+            rb.AddRelativeForce(Vector3.forward * thrust * gas);
+            rb.AddRelativeTorque(Vector3.up * thrust * gas * roll * (rb.velocity.magnitude > 2 ? 1 : 0));
         }
 
         if (brake != 0)
         {
-            rb.drag = rb.velocity.magnitude < 0.7 ? 1 : 0.7f;
+            rb.drag = rb.velocity.magnitude < 0.7 ? 1 : 0.3f;
         }
-        else rb.drag = 0.3f;
+        else rb.drag = 0.05f;
 
-        if (rb.velocity.magnitude > 20f)
-        {
-            rb.drag = 0;
-            rb.angularDrag = 0.05f;
-            rb.AddRelativeForce(Vector3.up * lift * 10);
-            return true;
-        }
+        if (lift > 0)
+            lift -= Time.deltaTime;
+
         return false;
     }
 }

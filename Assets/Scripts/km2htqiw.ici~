@@ -1,0 +1,138 @@
+﻿using System.Collections.Generic;
+using UnityEngine;
+
+public class PlayerController : MonoBehaviour
+{
+    public Rigidbody rb;
+    public List<WheelCollider> wheels;
+    // Air
+    public float thrust;
+    private float lift = 10000f;
+    private float drag = 10f;
+    private float torque = 10000f;
+    private float turnSpeed = 0.2f;
+    // Ground
+    public float acceleration;
+
+
+    private float MAX_TURN_ANGLE = 0.3f;
+    [Range(-1, 1)]
+    public float pitch;
+    [Range(-1, 1)]
+    public float roll;
+    [Range(0, 1)]
+    public float brake;
+    [Range(0, 1)]
+    public float flap;
+    [Range(1, 1)]
+    public float yaw;
+
+    public bool isFlying;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        isFlying = false;
+        rb.drag = 0.4f;
+        rb.angularDrag = 0.8f;
+    }
+
+    private void FixedUpdate()
+    {
+        foreach (var wheel in wheels)
+        {
+            wheel.motorTorque = 0.01f;
+        }
+        if (!isFlying)
+        {            
+            isFlying = MovingOnGround();
+        }
+        else
+        {
+            isFlying = Flying();
+        }
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        pitch = Input.GetAxis("Vertical");
+        roll = Input.GetAxis("Horizontal");
+        yaw = Input.GetAxis("Yaw");
+        brake = Input.GetAxis("Jump");
+    }
+
+    bool Flying()
+    {
+        if (rb.velocity.magnitude < 10f)
+        {
+            isFlying = false;
+        }
+
+        rb.AddForce(-Physics.gravity * rb.mass);
+        float angleOfAttack = Mathf.Clamp(Vector3.Angle(rb.velocity, transform.forward), -Mathf.Deg2Rad * 50, Mathf.Deg2Rad * 50) * Mathf.Deg2Rad;
+
+        rb.AddRelativeForce(angleOfAttack * lift * transform.InverseTransformVector(Vector3.up));
+        if (pitch != 0)
+        {
+            //transform.rotation *= Quaternion.AngleAxis(pitch * 0.7f, Vector3.right);
+            rb.AddRelativeTorque(Vector3.right * torque * pitch);
+        }
+        else
+        {
+            rb.AddRelativeTorque(Vector3.left * transform.rotation.x * torque);
+            //transform.rotation *= Quaternion.AngleAxis(transform.rotation.x, Vector3.left);
+        }
+
+        // transform.rotation *= Quaternion.AngleAxis(transform.rotation.z, transform.InverseTransformVector(Vector3.down));
+        rb.AddRelativeTorque(transform.InverseTransformVector(Vector3.down) * torque * 3 * transform.rotation.z);
+        if (roll != 0)
+        {
+            if (transform.rotation.z * roll > -0.4f)
+            {
+                //transform.rotation *= Quaternion.AngleAxis(roll, Vector3.back);
+                rb.AddRelativeTorque(Vector3.back * torque * roll);
+            }            
+        }
+        else
+        {
+            rb.AddRelativeTorque(transform.rotation.z * Vector3.back * torque);
+            //transform.rotation *= Quaternion.AngleAxis(transform.rotation.z, Vector3.back);            
+        }
+
+        if (yaw != 0)
+        {
+            //transform.rotation *= Quaternion.AngleAxis(yaw * turnSpeed, Vector3.up);
+        }
+
+
+        rb.AddRelativeForce(Vector3.forward * thrust);
+
+        return true;
+    }
+
+    bool MovingOnGround()
+    {
+        if (rb.velocity.magnitude > 20f)
+        {
+            rb.drag = 0.3f;
+            thrust = 30000f;
+            return true;
+        }
+
+        if (pitch != 0)
+        {
+            rb.AddRelativeForce(Vector3.forward * thrust * -pitch * (Input.GetKey(KeyCode.U) ? acceleration : 1)); // U is acceleration
+            rb.AddRelativeTorque(Vector3.up * thrust  * roll * (rb.velocity.magnitude > 2 && !Input.GetKey(KeyCode.U) ? 1 : 0));
+        }
+
+        if (brake != 0)
+        {
+            rb.drag = rb.velocity.magnitude < 0.7 ? 1 : 0.7f;
+        }
+        else rb.drag = 0.3f;
+
+        
+        return false;
+    }
+}
